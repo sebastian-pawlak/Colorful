@@ -1,0 +1,148 @@
+mads 2.0.6 build 58 (28 Jan 17)
+Source: C:\jac\wudsn\Workspace\COLORFUL\COLORFUL.ASM
+     1 				; "Colorful", Atari XL/XE Intro 256B
+     2 				; code by tr1x
+     3 				; requirements: original Atari XL/XE 64KB PAL
+     4 				; version: 1.0
+     5 				; release date: 2019-12-07
+     6
+     7 					org $0600
+     8
+     9 = 0080			gtia10	equ $80		; graphics 10 (GTIA mode)
+    10 = 0012			rtclok	equ $0012
+    11 = 0090			memdl1	equ $0090
+    12 = 0092			cntr1	equ $0092
+    13 = 0093			cntr2	equ $0093
+    14 = 0094			cntr3	equ $0094
+    15 = 0200			vdslst	equ $0200
+    16 = 026F			gprior	equ $026f
+    17 = 02C1			pcolr1	equ $02c1
+    18 = 5000			vidptr	equ $5000	; video memory
+    19 = 9C20			dlist	equ $9c20	; display list
+    20 = D013			colpm1	equ $d013
+    21 = D40A			wsync	equ $d40a
+    22 = D40B			vcount	equ $d40b
+    23 = E45C			setvbv	equ $e45c
+    24 = E462			xitvbv	equ $e462
+    25
+    26 					; prepare display list
+    27 FFFF> 0600-06F7> A2 23		ldx #<dlist+3
+    28 0602 86 90			stx memdl1
+    29 0604 A9 9C			lda #>dlist
+    30 0606 85 91			sta memdl1+1
+    31 0608 A2 C0			ldx #$c0
+    32 060A A0 00			ldy #$00
+    33 060C 84 13			sty rtclok+1	; zeroing rtclok+1
+    34 060E A9 4F		loopa1	lda #$4f	; ANTIC command: gr.mode | address
+    35 0610 91 90			sta (memdl1),y
+    36 0612 E6 90			inc memdl1
+    37 					;bne skipa1	; not needed,
+    38 					;inc memdl1+1	; ..since does not occur in practice
+    39 0614 A9 00		skipa1	lda #<vidptr
+    40 0616 91 90			sta (memdl1),y
+    41 0618 E6 90			inc memdl1
+    42 061A D0 02			bne skipa2
+    43 061C E6 91			inc memdl1+1
+    44 061E A9 50		skipa2	lda #>vidptr
+    45 0620 91 90			sta (memdl1),y
+    46 0622 E6 90			inc memdl1
+    47 0624 D0 02			bne skipa3
+    48 0626 E6 91			inc memdl1+1
+    49 0628 CA			skipa3	dex
+    50 0629 D0 E3			bne loopa1
+    51
+    52 					;lda #$41	; jump to the beginning of display list
+    53 					;sta dlist+$243	; ..is not necessary
+    54 					;lda #<dlist
+    55 					;sta dlist+$244
+    56 					;lda #>dlist
+    57 					;sta dlist+$245
+    58
+    59 					; set GTIA graphics mode
+    60 062B A9 80			lda #gtia10
+    61 062D 8D 6F 02			sta gprior
+    62
+    63 					; draw vertical bars
+    64 0630 A2 27			ldx #$27
+    65 0632 A0 06			ldy #$06
+    66 0634 B9 C1 06		loopb1	lda colors,y
+    67 0637 9D 00 50			sta vidptr,x
+    68 063A 88				dey
+    69 063B 10 02			bpl skipb1
+    70 063D A0 06			ldy #$06
+    71 063F CA			skipb1	dex
+    72 0640 10 F2			bpl loopb1
+    73
+    74 					; color palette animation
+    75 0642 AD 0B D4		anim	lda vcount
+    76 0645 CD 0B D4		loopc1	cmp vcount
+    77 0648 F0 FB			beq loopc1
+    78 064A 29 01			and #$01
+    79 064C D0 F4			bne anim
+    80 064E AD 0B D4			lda vcount
+    81 0651 18				clc
+    82 0652 65 14			adc rtclok+2
+    83
+    84 0654 18				clc
+    85 0655 79 C8 06			adc shapes+0,y
+    86 0658 AA				tax
+    87 0659 18				clc
+    88 065A 79 C9 06			adc shapes+1,y
+    89 065D 8D 8D 06			sta opcodc1+1
+    90 0660 18				clc
+    91 0661 79 CA 06			adc shapes+2,y
+    92 0664 8D A9 06			sta opcodc2+1
+    93 0667 8D 0A D4			sta wsync
+    94 066A EA				nop		; needed for synchronization
+    95 066B 18				clc
+    96 066C 79 CB 06			adc shapes+3,y
+    97 066F 8D A4 06			sta opcodc3+1
+    98 0672 18				clc    
+    99 0673 79 CC 06			adc shapes+4,y
+   100 0676 8D 9F 06			sta opcodc4+1
+   101 0679 18				clc
+   102 067A 79 CD 06			adc shapes+5,y
+   103 067D 8D 9A 06			sta opcodc5+1
+   104 0680 18				clc
+   105 0681 79 CE 06			adc shapes+6,y
+   106 0684 8D 95 06			sta opcodc6+1
+   107 0687 18				clc
+   108 0688 79 CF 06			adc shapes+7,y
+   109 068B A8				tay
+   110
+   111 068C A9 00		opcodc1	lda #$00
+   112 068E 8D 14 D0			sta colpm1+1
+   113 0691 8C 1A D0			sty colpm1+7
+   114 0694 A9 00		opcodc6	lda #$00
+   115 0696 8D 19 D0			sta colpm1+6
+   116 0699 A9 00		opcodc5	lda #$00
+   117 069B 8D 18 D0			sta colpm1+5
+   118 069E A9 00		opcodc4	lda #$00
+   119 06A0 8D 17 D0			sta colpm1+4
+   120 06A3 A9 00		opcodc3	lda #$00
+   121 06A5 8D 16 D0			sta colpm1+3
+   122 06A8 A9 00		opcodc2	lda #$00
+   123 06AA 8D 15 D0			sta colpm1+2
+   124 06AD 8E 13 D0			stx colpm1+0
+   125
+   126 06B0 A5 13			lda rtclok+1
+   127 06B2 C9 06			cmp #$06
+   128 06B4 D0 04			bne skipc1
+   129 06B6 A9 00			lda #$00
+   130 06B8 85 13			sta rtclok+1
+   131 06BA 0A			skipc1	asl
+   132 06BB 0A				asl
+   133 06BC 0A				asl
+   134 06BD A8				tay
+   135
+   136 06BE 4C 42 06			jmp anim
+   137
+   138 					; colors of vertical bars
+   139 06C1 21 23 45 67 87 65 + colors	.byte $21, $23, $45, $67, $87, $65, $43
+   140
+   141 06C8 02 02 02 02 02 02 + shapes	.byte $02, $02, $02, $02, $02, $02, $02, $02	; triangle
+   142 06D0 08 06 06 04 04 02 + 	.byte $08, $06, $06, $04, $04, $02, $02, $00	; parabola, arms down
+   143 06D8 00 12 12 14 14 16 + 	.byte $00, $12, $12, $14, $14, $16, $16, $18	; narrow parabola, up
+   144 06E0 00 00 02 04 04 02 + 	.byte $00, $00, $02, $04, $04, $02, $02, $00	; sine
+   145 06E8 04 04 04 04 04 04 + 	.byte $04, $04, $04, $04, $04, $04, $04, $04	; high triangle
+   146 06F0 20 22 24 26 28 2A + 	.byte $20, $22, $24, $26, $28, $2a, $2c, $2e	; dense parabola
